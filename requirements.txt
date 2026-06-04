@@ -1,0 +1,10 @@
+opencv-python
+ultralytics
+numpy==1.26.4
+SpeechRecognition
+pyaudio
+sounddevice
+scipy
+soundfile
+librosa
+streamlit
