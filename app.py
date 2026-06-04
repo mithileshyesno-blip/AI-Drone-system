@@ -1,6 +1,4 @@
 import streamlit as st
-import cv2
-from ultralytics import YOLO
 
 from core.voice_auth import VoiceAuthenticator
 from core.command_classifier import CommandClassifier
@@ -155,6 +153,17 @@ elif menu == "Live Vision":
     )
 
     if start_camera:
+
+        try:
+            import cv2
+        except Exception as ex:
+            st.error(
+                "Live Vision requires OpenCV and the appropriate system libraries."
+            )
+            st.error(str(ex))
+            st.stop()
+
+        from ultralytics import YOLO
 
         model = YOLO(
             "yolov8n.pt"
