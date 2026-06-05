@@ -1,3 +1,43 @@
 data
-
 venv
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+dist/
+eggs/
+.eggs/
+lib/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/cache/
+
+# Credentials
+.env
+.env.local
+credentials.json
+
+# Large files
+*.mp4
+*.avi
+*.mov
+*.webm
+*.wav
+*.mp3
+*.pt

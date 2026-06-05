@@ -431,70 +431,148 @@ elif "Vision" in menu:
         unsafe_allow_html=True,
     )
 
-    start_camera = st.button("Start Camera")
+    col_mode1, col_mode2 = st.columns(2)
+    with col_mode1:
+        camera_mode = st.button("🎥 Start Camera", key="camera_btn")
+    with col_mode2:
+        demo_mode = st.button("🎬 Demo Mode", key="demo_btn")
 
-    if start_camera:
+    if camera_mode:
         try:
             import cv2
-        except Exception as ex:
-            st.error("Live Vision requires OpenCV and the appropriate system libraries.")
-            st.error(str(ex))
-            st.stop()
-
-        from ultralytics import YOLO
-
-        model = YOLO("yolov8n.pt")
-        cap = cv2.VideoCapture(0)
-        frame_window = st.image([])
-
-        while cap.isOpened():
-            success, frame = cap.read()
-            if not success:
-                break
-
-            results = model(frame)
-            human_count = 0
-            vehicle_count = 0
-            animal_count = 0
-            vehicle_classes = [2, 3, 5, 7]
-            animal_classes = [15, 16, 17, 18, 19]
-
-            for result in results:
-                for box in result.boxes:
-                    cls = int(box.cls[0])
-                    confidence = float(box.conf[0])
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    label = ""
-                    if cls == 0:
-                        human_count += 1
-                        label = "Human"
-                    elif cls in vehicle_classes:
-                        vehicle_count += 1
-                        label = "Vehicle"
-                    elif cls in animal_classes:
-                        animal_count += 1
-                        label = "Animal"
-                    else:
+            cap = cv2.VideoCapture(0)
+            
+            if not cap.isOpened():
+                st.warning("⚠️ Camera not available on this system.")
+                st.info("💡 Try Demo Mode to see object detection in action with sample footage.")
+            else:
+                from ultralytics import YOLO
+                
+                model = YOLO("yolov8n.pt")
+                frame_window = st.image([])
+                stop_button = st.button("⏹️ Stop Camera")
+                
+                frame_count = 0
+                while cap.isOpened() and not stop_button:
+                    success, frame = cap.read()
+                    if not success:
+                        break
+                    
+                    frame_count += 1
+                    if frame_count % 2 != 0:  # Process every other frame for performance
                         continue
+                    
+                    results = model(frame, conf=0.5)
+                    human_count = 0
+                    vehicle_count = 0
+                    animal_count = 0
+                    vehicle_classes = [2, 3, 5, 7]
+                    animal_classes = [15, 16, 17, 18, 19]
+                    
+                    for result in results:
+                        for box in result.boxes:
+                            cls = int(box.cls[0])
+                            confidence = float(box.conf[0])
+                            x1, y1, x2, y2 = map(int, box.xyxy[0])
+                            label = ""
+                            color = (0, 255, 0)
+                            
+                            if cls == 0:
+                                human_count += 1
+                                label = "Human"
+                                color = (0, 255, 0)
+                            elif cls in vehicle_classes:
+                                vehicle_count += 1
+                                label = "Vehicle"
+                                color = (255, 0, 0)
+                            elif cls in animal_classes:
+                                animal_count += 1
+                                label = "Animal"
+                                color = (0, 0, 255)
+                            else:
+                                continue
+                            
+                            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
+                            cv2.putText(
+                                frame,
+                                f"{label} {confidence:.2f}",
+                                (x1, y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                0.6,
+                                color,
+                                2,
+                            )
+                    
+                    cv2.putText(frame, f"Humans: {human_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+                    cv2.putText(frame, f"Vehicles: {vehicle_count}", (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+                    cv2.putText(frame, f"Animals: {animal_count}", (20, 140), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                    
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    frame_window.image(frame, channels="RGB")
+                
+                cap.release()
+                st.success("Camera session ended.")
+        
+        except ImportError:
+            st.error("❌ OpenCV not installed on this system.")
+            st.info("💡 Try Demo Mode instead to see AI vision detection.")
+        except Exception as ex:
+            st.error(f"❌ Camera Error: {str(ex)}")
+            st.info("💡 Try Demo Mode instead to see AI vision detection.")
 
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    cv2.putText(
-                        frame,
-                        f"{label} {confidence:.2f}",
-                        (x1, y1 - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        (0, 255, 0),
-                        2,
-                    )
-
-            cv2.putText(frame, f"Humans: {human_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-            cv2.putText(frame, f"Vehicles: {vehicle_count}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
-            cv2.putText(frame, f"Animals: {animal_count}", (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_window.image(frame, channels="RGB")
-
-        cap.release()
+    if demo_mode:
+        st.info("🎬 **Demo Mode** - Live AI Vision Simulation")
+        try:
+            from PIL import Image, ImageDraw
+            import random
+            
+            demo_container = st.container()
+            frame_window = demo_container.image([])
+            
+            st.markdown("---")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Humans Detected", "0", "Real-time count")
+            with col2:
+                st.metric("Vehicles Detected", "0", "Real-time count")
+            with col3:
+                st.metric("Animals Detected", "0", "Real-time count")
+            
+            st.success("✓ Demo mode ready - Simulating 5 detection frames...")
+            
+            for frame_num in range(5):
+                img = Image.new('RGB', (640, 480), color=(20, 25, 50))
+                draw = ImageDraw.Draw(img)
+                
+                # Simulate detections
+                detections = [
+                    {"label": "Human", "conf": 0.92, "box": (50, 80, 180, 300), "color": (0, 255, 0)},
+                    {"label": "Vehicle", "conf": 0.88, "box": (300, 120, 500, 280), "color": (255, 0, 0)},
+                    {"label": "Animal", "conf": 0.85, "box": (100, 250, 200, 400), "color": (0, 0, 255)},
+                ]
+                
+                for det in detections:
+                    x1, y1, x2, y2 = det["box"]
+                    draw.rectangle([x1, y1, x2, y2], outline=det["color"], width=3)
+                    label_text = f"{det['label']} {det['conf']:.2f}"
+                    draw.text((x1, y1 - 15), label_text, fill=det["color"])
+                
+                # Draw stats
+                draw.text((20, 20), f"Frame {frame_num + 1}/5", fill=(255, 255, 255))
+                draw.text((20, 50), "Humans: 1", fill=(0, 255, 0))
+                draw.text((20, 80), "Vehicles: 1", fill=(255, 0, 0))
+                draw.text((20, 110), "Animals: 1", fill=(0, 0, 255))
+                
+                frame_window.image(img, channels="RGB", use_column_width=True)
+                import time
+                time.sleep(0.8)
+            
+            st.success("✓ Demo simulation complete!")
+            st.markdown("> **Note:** For real camera feed, run locally on a system with a connected camera.")
+        
+        except Exception as ex:
+            st.error(f"Demo mode error: {str(ex)}")
 
 
 # =========================
