@@ -487,13 +487,17 @@ elif "Vision" in menu:
     st.markdown("---")
     st.markdown("**📹 Select Vision Input Source:**")
     
-    vision_tab1, vision_tab2, vision_tab3, vision_tab4, vision_tab5 = st.tabs([
-        "🎥 IP Camera (RTSP)",
-        "📤 Upload Video",
-        "🌐 Stream URL",
-        "📹 Live Camera",
-        "🎬 Demo Mode"
-    ])
+    vision_mode = st.radio(
+        "Choose input source:",
+        [
+            "🎥 IP Camera (RTSP)",
+            "📤 Upload Video",
+            "🌐 Stream URL",
+            "📹 Live Camera",
+            "🎬 Demo Mode",
+        ],
+        horizontal=True,
+    )
     
     @st.cache_resource
     def load_yolo_model():
@@ -555,8 +559,7 @@ elif "Vision" in menu:
             st.error(f"Detection error: {str(e)}")
             return frame, 0, 0, 0
     
-    # TAB 1: IP Camera (RTSP)
-    with vision_tab1:
+    if vision_mode == "🎥 IP Camera (RTSP)":
         st.markdown("### 🎥 Connect to IP Camera")
         st.markdown("Provide RTSP/HTTP streaming URL from your security camera:")
         
@@ -603,8 +606,7 @@ elif "Vision" in menu:
             except Exception as e:
                 st.error(f"❌ Error: {str(e)}")
     
-    # TAB 2: Upload Video
-    with vision_tab2:
+    elif vision_mode == "📤 Upload Video":
         st.markdown("### 📤 Upload Video File")
         st.markdown("Upload MP4, AVI, MOV, or other video formats for analysis:")
         
@@ -660,8 +662,7 @@ elif "Vision" in menu:
             except Exception as e:
                 st.error(f"❌ Error processing video: {str(e)}")
     
-    # TAB 3: Stream URL
-    with vision_tab3:
+    elif vision_mode == "🌐 Stream URL":
         st.markdown("### 🌐 Stream from URL")
         st.markdown("Enter HTTP/HTTPS URL to any public video stream:")
         
@@ -708,8 +709,7 @@ elif "Vision" in menu:
             except Exception as e:
                 st.error(f"❌ Error: {str(e)}")
     
-    # TAB 4: Live Camera
-    with vision_tab4:
+    elif vision_mode == "📹 Live Camera":
         st.markdown("### 📹 Live Camera")
         
         if is_cloud:
@@ -765,8 +765,7 @@ elif "Vision" in menu:
                 except Exception as e:
                     st.error(f"❌ Camera Error: {str(e)}")
     
-    # TAB 5: Demo Mode
-    with vision_tab5:
+    elif vision_mode == "🎬 Demo Mode":
         st.markdown("### 🎬 Demo Mode")
         st.markdown("See simulated AI detection with sample objects:")
         
