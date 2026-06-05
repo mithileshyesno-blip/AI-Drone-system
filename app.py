@@ -1,3 +1,18 @@
+import os
+import sys
+
+# Fix for opencv-python-headless on systems without display
+# This must be done before importing cv2
+os.environ['OPENCV_VIDEOIO_DEBUG'] = '0'
+os.environ['OPENCV_VIDEOIO_V4L_RANGE_PARSER_USE_OPEN_RANGE'] = '1'
+
+try:
+    # Suppress cv2 GUI-related warnings
+    import cv2
+    cv2.setNumThreads(4)
+except Exception as e:
+    print(f"Note: OpenCV may have limited functionality: {e}")
+
 import streamlit as st
 
 from core.voice_auth import VoiceAuthenticator

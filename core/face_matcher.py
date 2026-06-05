@@ -1,4 +1,10 @@
-import cv2
+try:
+    import cv2
+except (ImportError, OSError) as e:
+    # cv2 not available (common on headless systems)
+    cv2 = None
+    print(f"Warning: cv2 not fully available: {e}")
+
 import os
 import numpy as np
 
