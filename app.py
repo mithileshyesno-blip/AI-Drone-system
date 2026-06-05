@@ -455,6 +455,14 @@ elif "Vision" in menu:
     st.markdown("---")
     st.markdown("**📹 Select Vision Input Source:**")
     
+    vision_tab1, vision_tab2, vision_tab3, vision_tab4, vision_tab5 = st.tabs([
+        "🎥 IP Camera (RTSP)",
+        "📤 Upload Video",
+        "🌐 Stream URL",
+        "📹 Live Camera",
+        "🎬 Demo Mode"
+    ])
+    
     @st.cache_resource
     def load_yolo_model():
         from ultralytics import YOLO
