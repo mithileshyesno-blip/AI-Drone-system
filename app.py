@@ -448,118 +448,32 @@ elif "Vision" in menu:
         unsafe_allow_html=True,
     )
 
-    col_mode1, col_mode2 = st.columns(2)
-    with col_mode1:
-        camera_mode = st.button("🎥 Start Camera", key="camera_btn")
-    with col_mode2:
-        demo_mode = st.button("🎬 Demo Mode", key="demo_btn")
-
-    if camera_mode:
-        try:
-            import cv2
-            # Try to open camera
-            cap = cv2.VideoCapture(0)
-            
-            if not cap.isOpened():
-                st.warning("⚠️ Camera not available on this system.")
-                st.info("💡 Try Demo Mode to see object detection in action with sample footage.")
-            else:
-                from ultralytics import YOLO
-                
-                model = YOLO("yolov8n.pt")
-                frame_window = st.image([])
-                stop_button = st.button("⏹️ Stop Camera")
-                
-                frame_count = 0
-                while cap.isOpened() and not stop_button:
-                    success, frame = cap.read()
-                    if not success:
-                        break
-                    
-                    frame_count += 1
-                    if frame_count % 2 != 0:  # Process every other frame for performance
-                        continue
-                    
-                    results = model(frame, conf=0.5)
-                    human_count = 0
-                    vehicle_count = 0
-                    animal_count = 0
-                    vehicle_classes = [2, 3, 5, 7]
-                    animal_classes = [15, 16, 17, 18, 19]
-                    
-                    for result in results:
-                        for box in result.boxes:
-                            cls = int(box.cls[0])
-                            confidence = float(box.conf[0])
-                            x1, y1, x2, y2 = map(int, box.xyxy[0])
-                            label = ""
-                            color = (0, 255, 0)
-                            
-                            if cls == 0:
-                                human_count += 1
-                                label = "Human"
-                                color = (0, 255, 0)
-                            elif cls in vehicle_classes:
-                                vehicle_count += 1
-                                label = "Vehicle"
-                                color = (255, 0, 0)
-                            elif cls in animal_classes:
-                                animal_count += 1
-                                label = "Animal"
-                                color = (0, 0, 255)
-                            else:
-                                continue
-                            
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
-                            cv2.putText(
-                                frame,
-                                f"{label} {confidence:.2f}",
-                                (x1, y1 - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                0.6,
-                                color,
-                                2,
-                            )
-                    
-                    cv2.putText(frame, f"Humans: {human_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
-                    cv2.putText(frame, f"Vehicles: {vehicle_count}", (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
-                    cv2.putText(frame, f"Animals: {animal_count}", (20, 140), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
-                    
-                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    frame_window.image(frame, channels="RGB")
-                
-                cap.release()
-                st.success("Camera session ended.")
+    # Detect environment - Streamlit Cloud vs Local
+    is_cloud = "STREAMLIT_SERVER_HEADLESS" in os.environ or "STREAMLIT_SERVER_RUNONSAVE" not in os.environ
+    
+    if is_cloud:
+        # Auto-launch Demo Mode on Streamlit Cloud
+        st.info("🌐 Running on Streamlit Cloud - Camera feed not available")
+        st.markdown("📹 Launching **Demo Mode** with simulated AI detection...")
         
-        except ImportError as e:
-            st.error(f"❌ OpenCV import error: {str(e)}")
-            st.info("💡 This is expected on Streamlit Cloud (no GUI). Try Demo Mode instead.")
-        except Exception as ex:
-            st.error(f"❌ Camera Error: {str(ex)}")
-            st.info("💡 Try Demo Mode instead to see AI vision detection.")
-
-    if demo_mode:
-        st.info("🎬 **Demo Mode** - Live AI Vision Simulation")
         try:
             from PIL import Image, ImageDraw
-            import random
-            
-            demo_container = st.container()
-            frame_window = demo_container.image([])
+            import time
             
             st.markdown("---")
+            demo_container = st.container()
+            frame_window = demo_container.empty()
+            
             col1, col2, col3 = st.columns(3)
+            col1_metric = col1.empty()
+            col2_metric = col2.empty()
+            col3_metric = col3.empty()
             
-            with col1:
-                st.metric("Humans Detected", "0", "Real-time count")
-            with col2:
-                st.metric("Vehicles Detected", "0", "Real-time count")
-            with col3:
-                st.metric("Animals Detected", "0", "Real-time count")
-            
-            st.success("✓ Demo mode ready - Simulating 5 detection frames...")
+            st.markdown("**🎬 Simulating 5 detection frames...**")
+            progress_bar = st.progress(0)
             
             for frame_num in range(5):
+                # Create simulated frame
                 img = Image.new('RGB', (640, 480), color=(20, 25, 50))
                 draw = ImageDraw.Draw(img)
                 
@@ -570,6 +484,7 @@ elif "Vision" in menu:
                     {"label": "Animal", "conf": 0.85, "box": (100, 250, 200, 400), "color": (0, 0, 255)},
                 ]
                 
+                # Draw bounding boxes and labels
                 for det in detections:
                     x1, y1, x2, y2 = det["box"]
                     draw.rectangle([x1, y1, x2, y2], outline=det["color"], width=3)
@@ -577,20 +492,189 @@ elif "Vision" in menu:
                     draw.text((x1, y1 - 15), label_text, fill=det["color"])
                 
                 # Draw stats
-                draw.text((20, 20), f"Frame {frame_num + 1}/5", fill=(255, 255, 255))
+                draw.text((20, 20), f"Frame {frame_num + 1}/5 | Demo Mode", fill=(255, 255, 255))
                 draw.text((20, 50), "Humans: 1", fill=(0, 255, 0))
                 draw.text((20, 80), "Vehicles: 1", fill=(255, 0, 0))
                 draw.text((20, 110), "Animals: 1", fill=(0, 0, 255))
+                draw.text((20, 450), "Cloud Demo - Real camera works locally", fill=(100, 100, 100))
                 
+                # Update display
                 frame_window.image(img, channels="RGB", width=640)
-                import time
+                
+                # Update metrics
+                col1_metric.metric("Humans Detected", "1", "Demo")
+                col2_metric.metric("Vehicles Detected", "1", "Demo")
+                col3_metric.metric("Animals Detected", "1", "Demo")
+                
+                # Update progress
+                progress_bar.progress((frame_num + 1) / 5)
+                
                 time.sleep(0.8)
             
-            st.success("✓ Demo simulation complete!")
-            st.markdown("> **Note:** For real camera feed, run locally on a system with a connected camera.")
+            st.success("✅ Demo simulation complete!")
+            st.markdown("""
+            ### What You're Seeing:
+            - **🎯 Bounding Boxes:** Object detection rectangles with labels
+            - **📊 Confidence Scores:** AI model confidence (0.0-1.0)
+            - **🏷️ Classifications:** Human, Vehicle, Animal
+            
+            ### Run Locally for Real Camera:
+            ```bash
+            pip install -r requirements.txt
+            streamlit run app.py
+            ```
+            
+            With a connected USB camera, you'll see **live video feed** with real-time AI detection instead of this simulation.
+            """)
         
         except Exception as ex:
             st.error(f"Demo mode error: {str(ex)}")
+            st.info("Try the **Home** section or **Voice Control** for other features.")
+    
+    else:
+        # Local environment - show camera and demo options
+        col_mode1, col_mode2 = st.columns(2)
+        with col_mode1:
+            camera_mode = st.button("🎥 Start Camera", key="camera_btn")
+        with col_mode2:
+            demo_mode = st.button("🎬 Demo Mode", key="demo_btn")
+
+        if camera_mode:
+            try:
+                import cv2
+                # Try to open camera
+                cap = cv2.VideoCapture(0)
+                
+                if not cap.isOpened():
+                    st.warning("⚠️ Camera not available on this system.")
+                    st.info("💡 Try Demo Mode to see object detection in action with sample footage.")
+                else:
+                    from ultralytics import YOLO
+                    
+                    model = YOLO("yolov8n.pt")
+                    frame_window = st.image([])
+                    stop_button = st.button("⏹️ Stop Camera")
+                    
+                    frame_count = 0
+                    while cap.isOpened() and not stop_button:
+                        success, frame = cap.read()
+                        if not success:
+                            break
+                        
+                        frame_count += 1
+                        if frame_count % 2 != 0:  # Process every other frame for performance
+                            continue
+                        
+                        results = model(frame, conf=0.5)
+                        human_count = 0
+                        vehicle_count = 0
+                        animal_count = 0
+                        vehicle_classes = [2, 3, 5, 7]
+                        animal_classes = [15, 16, 17, 18, 19]
+                        
+                        for result in results:
+                            for box in result.boxes:
+                                cls = int(box.cls[0])
+                                confidence = float(box.conf[0])
+                                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                                label = ""
+                                color = (0, 255, 0)
+                                
+                                if cls == 0:
+                                    human_count += 1
+                                    label = "Human"
+                                    color = (0, 255, 0)
+                                elif cls in vehicle_classes:
+                                    vehicle_count += 1
+                                    label = "Vehicle"
+                                    color = (255, 0, 0)
+                                elif cls in animal_classes:
+                                    animal_count += 1
+                                    label = "Animal"
+                                    color = (0, 0, 255)
+                                else:
+                                    continue
+                                
+                                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
+                                cv2.putText(
+                                    frame,
+                                    f"{label} {confidence:.2f}",
+                                    (x1, y1 - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX,
+                                    0.6,
+                                    color,
+                                    2,
+                                )
+                        
+                        cv2.putText(frame, f"Humans: {human_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+                        cv2.putText(frame, f"Vehicles: {vehicle_count}", (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+                        cv2.putText(frame, f"Animals: {animal_count}", (20, 140), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                        
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        frame_window.image(frame, channels="RGB")
+                    
+                    cap.release()
+                    st.success("Camera session ended.")
+            
+            except ImportError as e:
+                st.error(f"❌ OpenCV import error: {str(e)}")
+                st.info("💡 This is expected on Streamlit Cloud (no GUI). Try Demo Mode instead.")
+            except Exception as ex:
+                st.error(f"❌ Camera Error: {str(ex)}")
+                st.info("💡 Try Demo Mode instead to see AI vision detection.")
+
+        if demo_mode:
+            st.info("🎬 **Demo Mode** - Live AI Vision Simulation")
+            try:
+                from PIL import Image, ImageDraw
+                import time
+                
+                demo_container = st.container()
+                frame_window = demo_container.image([])
+                
+                st.markdown("---")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Humans Detected", "0", "Real-time count")
+                with col2:
+                    st.metric("Vehicles Detected", "0", "Real-time count")
+                with col3:
+                    st.metric("Animals Detected", "0", "Real-time count")
+                
+                st.success("✓ Demo mode ready - Simulating 5 detection frames...")
+                
+                for frame_num in range(5):
+                    img = Image.new('RGB', (640, 480), color=(20, 25, 50))
+                    draw = ImageDraw.Draw(img)
+                    
+                    # Simulate detections
+                    detections = [
+                        {"label": "Human", "conf": 0.92, "box": (50, 80, 180, 300), "color": (0, 255, 0)},
+                        {"label": "Vehicle", "conf": 0.88, "box": (300, 120, 500, 280), "color": (255, 0, 0)},
+                        {"label": "Animal", "conf": 0.85, "box": (100, 250, 200, 400), "color": (0, 0, 255)},
+                    ]
+                    
+                    for det in detections:
+                        x1, y1, x2, y2 = det["box"]
+                        draw.rectangle([x1, y1, x2, y2], outline=det["color"], width=3)
+                        label_text = f"{det['label']} {det['conf']:.2f}"
+                        draw.text((x1, y1 - 15), label_text, fill=det["color"])
+                    
+                    # Draw stats
+                    draw.text((20, 20), f"Frame {frame_num + 1}/5", fill=(255, 255, 255))
+                    draw.text((20, 50), "Humans: 1", fill=(0, 255, 0))
+                    draw.text((20, 80), "Vehicles: 1", fill=(255, 0, 0))
+                    draw.text((20, 110), "Animals: 1", fill=(0, 0, 255))
+                    
+                    frame_window.image(img, channels="RGB", width=640)
+                    time.sleep(0.8)
+                
+                st.success("✓ Demo simulation complete!")
+                st.markdown("> **Note:** For real camera feed, run locally on a system with a connected camera.")
+            
+            except Exception as ex:
+                st.error(f"Demo mode error: {str(ex)}")
 
 
 # =========================
