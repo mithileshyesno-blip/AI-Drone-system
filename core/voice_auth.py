@@ -36,7 +36,7 @@ class VoiceAuthenticator:
             return database
 
         for file in os.listdir(self.registered_path):
-            if file.startswith("auth") and file.endswith(".wav"):
+            if file.lower().endswith(".wav"):
                 full_path = os.path.join(self.registered_path, file)
                 print("Loading:", file)
                 try:

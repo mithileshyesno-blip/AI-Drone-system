@@ -391,42 +391,48 @@ elif "Authentication" in menu:
         unsafe_allow_html=True,
     )
 
-    voice_path = st.text_input(
-        "Enter voice file path",
-        value="data/registered_voices/auth_1.wav",
-        help="Use a full path to your voice sample or a relative path inside the repo."
+    st.markdown("**Step 1: Upload the voice sample you want to authenticate**")
+    uploaded_voice = st.file_uploader("Upload voice sample (.wav)", type=["wav"])
+
+    st.markdown("**Step 2: Confirm the registered voice directory**")
+    registered_dir_input = st.text_input(
+        "Registered voice samples folder",
+        value="data/registered_voices",
+        help="Folder containing authorized voice samples inside the repo."
     )
 
     if st.button("Authenticate"):
         try:
-            normalized_voice_path = os.path.normpath(voice_path.strip())
-            if not os.path.isabs(normalized_voice_path):
-                normalized_voice_path = os.path.abspath(normalized_voice_path)
-
-            if os.path.isfile(normalized_voice_path):
-                registered_dir = os.path.dirname(normalized_voice_path)
-            elif os.path.isdir(normalized_voice_path):
-                registered_dir = normalized_voice_path
+            if uploaded_voice is None:
+                st.error("Please upload a voice sample file to authenticate.")
             else:
-                registered_dir = os.path.abspath(r"data/registered_voices")
+                import tempfile
 
-            auth = VoiceAuthenticator(registered_path=registered_dir)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+                    tmp.write(uploaded_voice.read())
+                    input_voice_file = tmp.name
 
-            if not auth.voice_database:
-                st.warning(
-                    f"No registered voice samples were found in '{auth.registered_path}'. "
-                    "Add files like 'auth_1.wav' to enable voice authentication."
-                )
-            elif not os.path.isfile(normalized_voice_path):
-                st.error(f"Voice file not found: {normalized_voice_path}")
-            else:
-                result = auth.authenticate(normalized_voice_path)
-                if result:
-                    st.success("ACCESS GRANTED")
-                    st.info("Authorized operator confirmed.")
+                registered_dir = os.path.normpath(registered_dir_input.strip())
+                if not os.path.isabs(registered_dir):
+                    registered_dir = os.path.abspath(registered_dir)
+
+                auth = VoiceAuthenticator(registered_path=registered_dir)
+
+                if not auth.voice_database:
+                    st.warning(
+                        f"No registered voice samples were found in '{auth.registered_path}'. "
+                        "Add files like 'auth_1.wav' into that folder to enable voice authentication."
+                    )
                 else:
-                    st.error("ACCESS DENIED")
-                    st.warning("Please use a registered voice sample.")
+                    result = auth.authenticate(input_voice_file)
+                    if result:
+                        st.success("ACCESS GRANTED")
+                        st.info("Authorized operator confirmed.")
+                    else:
+                        st.error("ACCESS DENIED")
+                        st.warning("The uploaded voice sample did not match any registered voice.")
+
+                os.unlink(input_voice_file)
         except FileNotFoundError as ex:
             st.error(str(ex))
         except Exception as ex:
