@@ -455,20 +455,23 @@ elif "Vision" in menu:
     st.markdown("---")
     st.markdown("**📹 Select Vision Input Source:**")
     
-    vision_tab1, vision_tab2, vision_tab3, vision_tab4, vision_tab5 = st.tabs([
-        "🎥 IP Camera (RTSP)",
-        "📤 Upload Video",
-        "🌐 Stream URL",
-        "📹 Live Camera",
-        "🎬 Demo Mode"
-    ])
+    @st.cache_resource
+    def load_yolo_model():
+        from ultralytics import YOLO
+        return YOLO("yolov8n.pt")
     
-    def process_video_frame(frame, frame_num):
+    yolo_model = None
+    try:
+        yolo_model = load_yolo_model()
+    except Exception as e:
+        st.warning(f"YOLO model could not be loaded right now: {e}")
+        st.info("If you want only Demo Mode, skip the live/video tabs.")
+    
+    def process_video_frame(frame, frame_num, model):
         """Process frame with YOLO detection"""
+        if model is None:
+            return frame, 0, 0, 0
         try:
-            from ultralytics import YOLO
-            model = YOLO("yolov8n.pt")
-            
             results = model(frame, conf=0.5)
             human_count = 0
             vehicle_count = 0
@@ -548,7 +551,7 @@ elif "Vision" in menu:
                         
                         frame_count += 1
                         if frame_count % 2 == 0:  # Process every other frame
-                            frame, h_count, v_count, a_count = process_video_frame(frame, frame_count)
+                            frame, h_count, v_count, a_count = process_video_frame(frame, frame_count, yolo_model)
                             
                             frame_window.image(frame, channels="RGB")
                             metric1.metric("Humans", h_count)
@@ -598,7 +601,7 @@ elif "Vision" in menu:
                         
                         frame_count += 1
                         if frame_count % 2 == 0:  # Process every other frame
-                            frame, h_count, v_count, a_count = process_video_frame(frame, frame_count)
+                            frame, h_count, v_count, a_count = process_video_frame(frame, frame_count, yolo_model)
                             
                             frame_window.image(frame, channels="RGB")
                             metric1.metric("Humans", h_count)
@@ -653,7 +656,7 @@ elif "Vision" in menu:
                         
                         frame_count += 1
                         if frame_count % 2 == 0:  # Process every other frame
-                            frame, h_count, v_count, a_count = process_video_frame(frame, frame_count)
+                            frame, h_count, v_count, a_count = process_video_frame(frame, frame_count, yolo_model)
                             
                             frame_window.image(frame, channels="RGB")
                             metric1.metric("Humans", h_count)
@@ -696,7 +699,7 @@ elif "Vision" in menu:
                             
                             frame_count += 1
                             if frame_count % 2 == 0:  # Process every other frame
-                                frame, h_count, v_count, a_count = process_video_frame(frame, frame_count)
+                                frame, h_count, v_count, a_count = process_video_frame(frame, frame_count, yolo_model)
                                 
                                 frame_window.image(frame, channels="RGB")
                                 metric1.metric("Humans", h_count)

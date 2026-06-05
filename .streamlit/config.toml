@@ -10,6 +10,9 @@ base = "dark"
 showErrorDetails = true
 toolbarMode = "viewer"
 
+[server]
+maxUploadSize = 200
+
 [logger]
 level = "info"
 
