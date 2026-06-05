@@ -1,4 +1,9 @@
 try:
+    import numpy as np
+except ImportError as e:
+    raise ImportError(f"NumPy is required but not installed: {e}")
+
+try:
     import cv2
 except (ImportError, OSError) as e:
     # cv2 not available (common on headless systems)
@@ -6,7 +11,6 @@ except (ImportError, OSError) as e:
     print(f"Warning: cv2 not fully available: {e}")
 
 import os
-import numpy as np
 
 
 class FaceMatcher:

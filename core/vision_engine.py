@@ -1,4 +1,9 @@
 try:
+    import numpy as np
+except ImportError as e:
+    raise ImportError(f"NumPy is required: {e}")
+
+try:
     import cv2
 except (ImportError, OSError) as e:
     # cv2 not available (common on headless systems)

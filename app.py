@@ -5,13 +5,15 @@ import sys
 # This must be done before importing cv2
 os.environ['OPENCV_VIDEOIO_DEBUG'] = '0'
 os.environ['OPENCV_VIDEOIO_V4L_RANGE_PARSER_USE_OPEN_RANGE'] = '1'
+os.environ['OPENCV_LOG_LEVEL'] = 'OFF'
 
 try:
-    # Suppress cv2 GUI-related warnings
+    # Suppress cv2 and numpy GUI-related warnings
+    import numpy as np
     import cv2
-    cv2.setNumThreads(4)
+    cv2.setNumThreads(2)
 except Exception as e:
-    print(f"Note: OpenCV may have limited functionality: {e}")
+    print(f"Note: OpenCV/NumPy may have limited functionality: {e}")
 
 import streamlit as st
 
