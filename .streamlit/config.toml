@@ -13,7 +13,3 @@ toolbarMode = "viewer"
 [logger]
 level = "info"
 
-[ui]
-hideTopBar = false
-hideSidebarNav = false
-

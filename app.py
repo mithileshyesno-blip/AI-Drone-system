@@ -440,6 +440,7 @@ elif "Vision" in menu:
     if camera_mode:
         try:
             import cv2
+            # Try to open camera
             cap = cv2.VideoCapture(0)
             
             if not cap.isOpened():
@@ -513,9 +514,9 @@ elif "Vision" in menu:
                 cap.release()
                 st.success("Camera session ended.")
         
-        except ImportError:
-            st.error("❌ OpenCV not installed on this system.")
-            st.info("💡 Try Demo Mode instead to see AI vision detection.")
+        except ImportError as e:
+            st.error(f"❌ OpenCV import error: {str(e)}")
+            st.info("💡 This is expected on Streamlit Cloud (no GUI). Try Demo Mode instead.")
         except Exception as ex:
             st.error(f"❌ Camera Error: {str(ex)}")
             st.info("💡 Try Demo Mode instead to see AI vision detection.")
@@ -564,7 +565,7 @@ elif "Vision" in menu:
                 draw.text((20, 80), "Vehicles: 1", fill=(255, 0, 0))
                 draw.text((20, 110), "Animals: 1", fill=(0, 0, 255))
                 
-                frame_window.image(img, channels="RGB", use_column_width=True)
+                frame_window.image(img, channels="RGB", width=640)
                 import time
                 time.sleep(0.8)
             
