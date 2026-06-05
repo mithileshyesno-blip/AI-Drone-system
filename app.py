@@ -396,15 +396,26 @@ elif "Authentication" in menu:
     if st.button("Authenticate"):
         try:
             auth = VoiceAuthenticator()
-            result = auth.authenticate(voice_path)
-            if result:
-                st.success("ACCESS GRANTED")
-                st.info("Authorized operator confirmed.")
+            if not auth.voice_database:
+                st.warning(
+                    f"No registered voice samples were found in '{auth.registered_path}'. "
+                    "Add files like 'auth_1.wav' to enable voice authentication."
+                )
             else:
-                st.error("ACCESS DENIED")
-                st.warning("Please use a registered voice sample.")
-        except Exception as ex:
+                if not os.path.exists(voice_path):
+                    st.error(f"Voice file not found: {voice_path}")
+                else:
+                    result = auth.authenticate(voice_path)
+                    if result:
+                        st.success("ACCESS GRANTED")
+                        st.info("Authorized operator confirmed.")
+                    else:
+                        st.error("ACCESS DENIED")
+                        st.warning("Please use a registered voice sample.")
+        except FileNotFoundError as ex:
             st.error(str(ex))
+        except Exception as ex:
+            st.error(f"Voice Authentication Error: {str(ex)}")
 
 
 # =========================
