@@ -391,10 +391,13 @@ elif "Authentication" in menu:
         unsafe_allow_html=True,
     )
 
-    st.markdown("**Step 1: Upload the voice sample you want to authenticate**")
-    uploaded_voice = st.file_uploader("Upload voice sample (.wav)", type=["wav"])
+    st.markdown("**Step 1: Upload the registered voice sample**")
+    registered_voice = st.file_uploader("Upload authorized voice sample (.wav)", type=["wav"], key="registered_voice")
 
-    st.markdown("**Step 2: Confirm the registered voice directory**")
+    st.markdown("**Step 2: Upload the voice sample to authenticate**")
+    uploaded_voice = st.file_uploader("Upload test voice sample (.wav)", type=["wav"], key="test_voice")
+
+    st.markdown("**Optional: Use existing registered voice folder**")
     registered_dir_input = st.text_input(
         "Registered voice samples folder",
         value="data/registered_voices",
@@ -404,35 +407,49 @@ elif "Authentication" in menu:
     if st.button("Authenticate"):
         try:
             if uploaded_voice is None:
-                st.error("Please upload a voice sample file to authenticate.")
+                st.error("Please upload a test voice sample to authenticate.")
             else:
                 import tempfile
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-                    tmp.write(uploaded_voice.read())
-                    input_voice_file = tmp.name
-
-                registered_dir = os.path.normpath(registered_dir_input.strip())
-                if not os.path.isabs(registered_dir):
-                    registered_dir = os.path.abspath(registered_dir)
-
-                auth = VoiceAuthenticator(registered_path=registered_dir)
-
-                if not auth.voice_database:
-                    st.warning(
-                        f"No registered voice samples were found in '{auth.registered_path}'. "
-                        "Add files like 'auth_1.wav' into that folder to enable voice authentication."
-                    )
+                registered_dir = None
+                temp_dir = None
+                if registered_voice is not None:
+                    temp_dir = tempfile.TemporaryDirectory()
+                    registered_path = os.path.join(temp_dir.name, "registered.wav")
+                    with open(registered_path, "wb") as registered_file:
+                        registered_file.write(registered_voice.read())
+                    registered_dir = temp_dir.name
                 else:
-                    result = auth.authenticate(input_voice_file)
-                    if result:
-                        st.success("ACCESS GRANTED")
-                        st.info("Authorized operator confirmed.")
-                    else:
-                        st.error("ACCESS DENIED")
-                        st.warning("The uploaded voice sample did not match any registered voice.")
+                    registered_dir = os.path.normpath(registered_dir_input.strip())
+                    if not os.path.isabs(registered_dir):
+                        registered_dir = os.path.abspath(registered_dir)
 
-                os.unlink(input_voice_file)
+                if registered_dir is None:
+                    st.error("No authorized voice sample or folder specified.")
+                else:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+                        tmp.write(uploaded_voice.read())
+                        input_voice_file = tmp.name
+
+                    auth = VoiceAuthenticator(registered_path=registered_dir)
+
+                    if not auth.voice_database:
+                        st.warning(
+                            f"No registered voice samples were found in '{auth.registered_path}'. "
+                            "Upload an authorized voice sample or add files like 'auth_1.wav' into that folder."
+                        )
+                    else:
+                        result = auth.authenticate(input_voice_file)
+                        if result:
+                            st.success("ACCESS GRANTED")
+                            st.info("Authorized operator confirmed.")
+                        else:
+                            st.error("ACCESS DENIED")
+                            st.warning("The uploaded voice sample did not match any registered voice.")
+
+                    os.unlink(input_voice_file)
+                if temp_dir is not None:
+                    temp_dir.cleanup()
         except FileNotFoundError as ex:
             st.error(str(ex))
         except Exception as ex:
