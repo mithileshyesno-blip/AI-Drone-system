@@ -442,7 +442,7 @@ elif "Vision" in menu:
         """
         <div class="section-card">
             <div class="section-title">Live AI Vision</div>
-            <p class="section-description">Activate the camera to monitor live footage with object detection and bounding box analysis.</p>
+            <p class="section-description">Connect to cameras, upload videos, or stream live feeds with real-time AI object detection.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -451,198 +451,282 @@ elif "Vision" in menu:
     # Detect environment - Streamlit Cloud vs Local
     is_cloud = "STREAMLIT_SERVER_HEADLESS" in os.environ or "STREAMLIT_SERVER_RUNONSAVE" not in os.environ
     
-    if is_cloud:
-        # Auto-launch Demo Mode on Streamlit Cloud
-        st.info("🌐 Running on Streamlit Cloud - Camera feed not available")
-        st.markdown("📹 Launching **Demo Mode** with simulated AI detection...")
-        
-        try:
-            from PIL import Image, ImageDraw
-            import time
-            
-            st.markdown("---")
-            demo_container = st.container()
-            frame_window = demo_container.empty()
-            
-            col1, col2, col3 = st.columns(3)
-            col1_metric = col1.empty()
-            col2_metric = col2.empty()
-            col3_metric = col3.empty()
-            
-            st.markdown("**🎬 Simulating 5 detection frames...**")
-            progress_bar = st.progress(0)
-            
-            for frame_num in range(5):
-                # Create simulated frame
-                img = Image.new('RGB', (640, 480), color=(20, 25, 50))
-                draw = ImageDraw.Draw(img)
-                
-                # Simulate detections
-                detections = [
-                    {"label": "Human", "conf": 0.92, "box": (50, 80, 180, 300), "color": (0, 255, 0)},
-                    {"label": "Vehicle", "conf": 0.88, "box": (300, 120, 500, 280), "color": (255, 0, 0)},
-                    {"label": "Animal", "conf": 0.85, "box": (100, 250, 200, 400), "color": (0, 0, 255)},
-                ]
-                
-                # Draw bounding boxes and labels
-                for det in detections:
-                    x1, y1, x2, y2 = det["box"]
-                    draw.rectangle([x1, y1, x2, y2], outline=det["color"], width=3)
-                    label_text = f"{det['label']} {det['conf']:.2f}"
-                    draw.text((x1, y1 - 15), label_text, fill=det["color"])
-                
-                # Draw stats
-                draw.text((20, 20), f"Frame {frame_num + 1}/5 | Demo Mode", fill=(255, 255, 255))
-                draw.text((20, 50), "Humans: 1", fill=(0, 255, 0))
-                draw.text((20, 80), "Vehicles: 1", fill=(255, 0, 0))
-                draw.text((20, 110), "Animals: 1", fill=(0, 0, 255))
-                draw.text((20, 450), "Cloud Demo - Real camera works locally", fill=(100, 100, 100))
-                
-                # Update display
-                frame_window.image(img, channels="RGB", width=640)
-                
-                # Update metrics
-                col1_metric.metric("Humans Detected", "1", "Demo")
-                col2_metric.metric("Vehicles Detected", "1", "Demo")
-                col3_metric.metric("Animals Detected", "1", "Demo")
-                
-                # Update progress
-                progress_bar.progress((frame_num + 1) / 5)
-                
-                time.sleep(0.8)
-            
-            st.success("✅ Demo simulation complete!")
-            st.markdown("""
-            ### What You're Seeing:
-            - **🎯 Bounding Boxes:** Object detection rectangles with labels
-            - **📊 Confidence Scores:** AI model confidence (0.0-1.0)
-            - **🏷️ Classifications:** Human, Vehicle, Animal
-            
-            ### Run Locally for Real Camera:
-            ```bash
-            pip install -r requirements.txt
-            streamlit run app.py
-            ```
-            
-            With a connected USB camera, you'll see **live video feed** with real-time AI detection instead of this simulation.
-            """)
-        
-        except Exception as ex:
-            st.error(f"Demo mode error: {str(ex)}")
-            st.info("Try the **Home** section or **Voice Control** for other features.")
+    # Vision input options
+    st.markdown("---")
+    st.markdown("**📹 Select Vision Input Source:**")
     
-    else:
-        # Local environment - show camera and demo options
-        col_mode1, col_mode2 = st.columns(2)
-        with col_mode1:
-            camera_mode = st.button("🎥 Start Camera", key="camera_btn")
-        with col_mode2:
-            demo_mode = st.button("🎬 Demo Mode", key="demo_btn")
-
-        if camera_mode:
+    vision_tab1, vision_tab2, vision_tab3, vision_tab4, vision_tab5 = st.tabs([
+        "🎥 IP Camera (RTSP)",
+        "📤 Upload Video",
+        "🌐 Stream URL",
+        "📹 Live Camera",
+        "🎬 Demo Mode"
+    ])
+    
+    def process_video_frame(frame, frame_num):
+        """Process frame with YOLO detection"""
+        try:
+            from ultralytics import YOLO
+            model = YOLO("yolov8n.pt")
+            
+            results = model(frame, conf=0.5)
+            human_count = 0
+            vehicle_count = 0
+            animal_count = 0
+            vehicle_classes = [2, 3, 5, 7]
+            animal_classes = [15, 16, 17, 18, 19]
+            
+            for result in results:
+                for box in result.boxes:
+                    cls = int(box.cls[0])
+                    confidence = float(box.conf[0])
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    label = ""
+                    color = (0, 255, 0)
+                    
+                    if cls == 0:
+                        human_count += 1
+                        label = "Human"
+                        color = (0, 255, 0)
+                    elif cls in vehicle_classes:
+                        vehicle_count += 1
+                        label = "Vehicle"
+                        color = (255, 0, 0)
+                    elif cls in animal_classes:
+                        animal_count += 1
+                        label = "Animal"
+                        color = (0, 0, 255)
+                    else:
+                        continue
+                    
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
+                    cv2.putText(frame, f"{label} {confidence:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            
+            cv2.putText(frame, f"Humans: {human_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+            cv2.putText(frame, f"Vehicles: {vehicle_count}", (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+            cv2.putText(frame, f"Animals: {animal_count}", (20, 140), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+            
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            return frame, human_count, vehicle_count, animal_count
+        except Exception as e:
+            st.error(f"Detection error: {str(e)}")
+            return frame, 0, 0, 0
+    
+    # TAB 1: IP Camera (RTSP)
+    with vision_tab1:
+        st.markdown("### 🎥 Connect to IP Camera")
+        st.markdown("Provide RTSP/HTTP streaming URL from your security camera:")
+        
+        rtsp_url = st.text_input(
+            "Camera Stream URL",
+            placeholder="rtsp://username:password@192.168.1.100:554/stream",
+            help="Enter RTSP or HTTP URL from your IP camera"
+        )
+        
+        if rtsp_url:
             try:
-                import cv2
-                # Try to open camera
-                cap = cv2.VideoCapture(0)
+                st.info("🔗 Connecting to camera stream...")
+                cap = cv2.VideoCapture(rtsp_url)
                 
                 if not cap.isOpened():
-                    st.warning("⚠️ Camera not available on this system.")
-                    st.info("💡 Try Demo Mode to see object detection in action with sample footage.")
+                    st.error("❌ Failed to connect to stream. Check URL and network access.")
                 else:
-                    from ultralytics import YOLO
+                    frame_window = st.empty()
+                    stop_button = st.button("⏹️ Stop Stream", key="stop_rtsp")
                     
-                    model = YOLO("yolov8n.pt")
-                    frame_window = st.image([])
-                    stop_button = st.button("⏹️ Stop Camera")
+                    col1, col2, col3 = st.columns(3)
+                    metric1 = col1.empty()
+                    metric2 = col2.empty()
+                    metric3 = col3.empty()
                     
                     frame_count = 0
                     while cap.isOpened() and not stop_button:
                         success, frame = cap.read()
                         if not success:
+                            st.warning("Stream ended or connection lost.")
                             break
                         
                         frame_count += 1
-                        if frame_count % 2 != 0:  # Process every other frame for performance
-                            continue
-                        
-                        results = model(frame, conf=0.5)
-                        human_count = 0
-                        vehicle_count = 0
-                        animal_count = 0
-                        vehicle_classes = [2, 3, 5, 7]
-                        animal_classes = [15, 16, 17, 18, 19]
-                        
-                        for result in results:
-                            for box in result.boxes:
-                                cls = int(box.cls[0])
-                                confidence = float(box.conf[0])
-                                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                                label = ""
-                                color = (0, 255, 0)
-                                
-                                if cls == 0:
-                                    human_count += 1
-                                    label = "Human"
-                                    color = (0, 255, 0)
-                                elif cls in vehicle_classes:
-                                    vehicle_count += 1
-                                    label = "Vehicle"
-                                    color = (255, 0, 0)
-                                elif cls in animal_classes:
-                                    animal_count += 1
-                                    label = "Animal"
-                                    color = (0, 0, 255)
-                                else:
-                                    continue
-                                
-                                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
-                                cv2.putText(
-                                    frame,
-                                    f"{label} {confidence:.2f}",
-                                    (x1, y1 - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX,
-                                    0.6,
-                                    color,
-                                    2,
-                                )
-                        
-                        cv2.putText(frame, f"Humans: {human_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
-                        cv2.putText(frame, f"Vehicles: {vehicle_count}", (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
-                        cv2.putText(frame, f"Animals: {animal_count}", (20, 140), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
-                        
-                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        frame_window.image(frame, channels="RGB")
+                        if frame_count % 2 == 0:  # Process every other frame
+                            frame, h_count, v_count, a_count = process_video_frame(frame, frame_count)
+                            
+                            frame_window.image(frame, channels="RGB")
+                            metric1.metric("Humans", h_count)
+                            metric2.metric("Vehicles", v_count)
+                            metric3.metric("Animals", a_count)
                     
                     cap.release()
-                    st.success("Camera session ended.")
-            
-            except ImportError as e:
-                st.error(f"❌ OpenCV import error: {str(e)}")
-                st.info("💡 This is expected on Streamlit Cloud (no GUI). Try Demo Mode instead.")
-            except Exception as ex:
-                st.error(f"❌ Camera Error: {str(ex)}")
-                st.info("💡 Try Demo Mode instead to see AI vision detection.")
-
-        if demo_mode:
-            st.info("🎬 **Demo Mode** - Live AI Vision Simulation")
+                    st.success("✅ Stream stopped.")
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
+    
+    # TAB 2: Upload Video
+    with vision_tab2:
+        st.markdown("### 📤 Upload Video File")
+        st.markdown("Upload MP4, AVI, MOV, or other video formats for analysis:")
+        
+        video_file = st.file_uploader("Choose a video file", type=['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv'])
+        
+        if video_file:
+            try:
+                # Save uploaded file temporarily
+                import tempfile
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
+                    tmp.write(video_file.read())
+                    temp_path = tmp.name
+                
+                st.info("📹 Processing uploaded video...")
+                cap = cv2.VideoCapture(temp_path)
+                
+                if not cap.isOpened():
+                    st.error("❌ Failed to read video file.")
+                else:
+                    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    frame_window = st.empty()
+                    progress_bar = st.progress(0)
+                    
+                    col1, col2, col3 = st.columns(3)
+                    metric1 = col1.empty()
+                    metric2 = col2.empty()
+                    metric3 = col3.empty()
+                    
+                    frame_count = 0
+                    while cap.isOpened():
+                        success, frame = cap.read()
+                        if not success:
+                            break
+                        
+                        frame_count += 1
+                        if frame_count % 2 == 0:  # Process every other frame
+                            frame, h_count, v_count, a_count = process_video_frame(frame, frame_count)
+                            
+                            frame_window.image(frame, channels="RGB")
+                            metric1.metric("Humans", h_count)
+                            metric2.metric("Vehicles", v_count)
+                            metric3.metric("Animals", a_count)
+                            
+                            progress = min(frame_count / total_frames, 1.0)
+                            progress_bar.progress(progress)
+                    
+                    cap.release()
+                    st.success(f"✅ Video analysis complete! Processed {frame_count} frames.")
+                    
+                    # Clean up
+                    import os
+                    os.unlink(temp_path)
+            except Exception as e:
+                st.error(f"❌ Error processing video: {str(e)}")
+    
+    # TAB 3: Stream URL
+    with vision_tab3:
+        st.markdown("### 🌐 Stream from URL")
+        st.markdown("Enter HTTP/HTTPS URL to any public video stream:")
+        
+        stream_url = st.text_input(
+            "Stream URL",
+            placeholder="https://example.com/stream.m3u8 or https://example.com/stream.mp4",
+            help="HTTP, HTTPS, HLS (.m3u8), or MP4 URLs"
+        )
+        
+        if stream_url:
+            try:
+                st.info("🔗 Connecting to stream...")
+                cap = cv2.VideoCapture(stream_url)
+                
+                if not cap.isOpened():
+                    st.error("❌ Failed to connect to stream. Check URL and format.")
+                else:
+                    frame_window = st.empty()
+                    stop_button = st.button("⏹️ Stop Stream", key="stop_url")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    metric1 = col1.empty()
+                    metric2 = col2.empty()
+                    metric3 = col3.empty()
+                    
+                    frame_count = 0
+                    while cap.isOpened() and not stop_button:
+                        success, frame = cap.read()
+                        if not success:
+                            st.warning("Stream ended or connection lost.")
+                            break
+                        
+                        frame_count += 1
+                        if frame_count % 2 == 0:  # Process every other frame
+                            frame, h_count, v_count, a_count = process_video_frame(frame, frame_count)
+                            
+                            frame_window.image(frame, channels="RGB")
+                            metric1.metric("Humans", h_count)
+                            metric2.metric("Vehicles", v_count)
+                            metric3.metric("Animals", a_count)
+                    
+                    cap.release()
+                    st.success("✅ Stream stopped.")
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
+    
+    # TAB 4: Live Camera (only works locally)
+    with vision_tab4:
+        st.markdown("### 📹 Live Camera")
+        
+        if is_cloud:
+            st.warning("⚠️ Camera input not available on Streamlit Cloud")
+            st.info("💡 Try other tabs: IP Camera, Upload Video, or Stream URL")
+        else:
+            if st.button("🎥 Start Local Camera"):
+                try:
+                    cap = cv2.VideoCapture(0)
+                    
+                    if not cap.isOpened():
+                        st.error("❌ No camera detected on this system.")
+                    else:
+                        frame_window = st.empty()
+                        stop_button = st.button("⏹️ Stop Camera")
+                        
+                        col1, col2, col3 = st.columns(3)
+                        metric1 = col1.empty()
+                        metric2 = col2.empty()
+                        metric3 = col3.empty()
+                        
+                        frame_count = 0
+                        while cap.isOpened() and not stop_button:
+                            success, frame = cap.read()
+                            if not success:
+                                break
+                            
+                            frame_count += 1
+                            if frame_count % 2 == 0:  # Process every other frame
+                                frame, h_count, v_count, a_count = process_video_frame(frame, frame_count)
+                                
+                                frame_window.image(frame, channels="RGB")
+                                metric1.metric("Humans", h_count)
+                                metric2.metric("Vehicles", v_count)
+                                metric3.metric("Animals", a_count)
+                        
+                        cap.release()
+                        st.success("✅ Camera session ended.")
+                except Exception as e:
+                    st.error(f"❌ Camera Error: {str(e)}")
+    
+    # TAB 5: Demo Mode
+    with vision_tab5:
+        st.markdown("### 🎬 Demo Mode")
+        st.markdown("See simulated AI detection with sample objects:")
+        
+        if st.button("▶️ Start Demo"):
             try:
                 from PIL import Image, ImageDraw
                 import time
                 
-                demo_container = st.container()
-                frame_window = demo_container.image([])
+                frame_window = st.empty()
+                progress_bar = st.progress(0)
                 
-                st.markdown("---")
                 col1, col2, col3 = st.columns(3)
+                metric1 = col1.empty()
+                metric2 = col2.empty()
+                metric3 = col3.empty()
                 
-                with col1:
-                    st.metric("Humans Detected", "0", "Real-time count")
-                with col2:
-                    st.metric("Vehicles Detected", "0", "Real-time count")
-                with col3:
-                    st.metric("Animals Detected", "0", "Real-time count")
-                
-                st.success("✓ Demo mode ready - Simulating 5 detection frames...")
+                st.info("🎬 Simulating AI detection with 5 frames...")
                 
                 for frame_num in range(5):
                     img = Image.new('RGB', (640, 480), color=(20, 25, 50))
@@ -661,20 +745,34 @@ elif "Vision" in menu:
                         label_text = f"{det['label']} {det['conf']:.2f}"
                         draw.text((x1, y1 - 15), label_text, fill=det["color"])
                     
-                    # Draw stats
-                    draw.text((20, 20), f"Frame {frame_num + 1}/5", fill=(255, 255, 255))
+                    draw.text((20, 20), f"Frame {frame_num + 1}/5 - Demo", fill=(255, 255, 255))
                     draw.text((20, 50), "Humans: 1", fill=(0, 255, 0))
                     draw.text((20, 80), "Vehicles: 1", fill=(255, 0, 0))
                     draw.text((20, 110), "Animals: 1", fill=(0, 0, 255))
                     
                     frame_window.image(img, channels="RGB", width=640)
+                    metric1.metric("Humans", "1")
+                    metric2.metric("Vehicles", "1")
+                    metric3.metric("Animals", "1")
+                    
+                    progress_bar.progress((frame_num + 1) / 5)
                     time.sleep(0.8)
                 
-                st.success("✓ Demo simulation complete!")
-                st.markdown("> **Note:** For real camera feed, run locally on a system with a connected camera.")
-            
-            except Exception as ex:
-                st.error(f"Demo mode error: {str(ex)}")
+                st.success("✅ Demo complete!")
+                st.markdown("""
+                ### What You Saw:
+                - 🎯 **Bounding Boxes:** Object detection rectangles with confidence scores
+                - 📊 **Confidence Scores:** AI model accuracy (0.0-1.0 scale)
+                - 🏷️ **Classifications:** Human, Vehicle, Animal detection
+                
+                ### Ready for Real Feeds?
+                Try the other tabs to connect to:
+                - 🎥 IP cameras (RTSP streaming)
+                - 📤 Your own video files
+                - 🌐 Any public video stream
+                """)
+            except Exception as e:
+                st.error(f"Demo error: {str(e)}")
 
 
 # =========================
