@@ -668,13 +668,27 @@ elif "Vision" in menu:
             except Exception as e:
                 st.error(f"❌ Error: {str(e)}")
     
-    # TAB 4: Live Camera (only works locally)
+    # TAB 4: Live Camera
     with vision_tab4:
         st.markdown("### 📹 Live Camera")
         
         if is_cloud:
-            st.warning("⚠️ Camera input not available on Streamlit Cloud")
-            st.info("💡 Try other tabs: IP Camera, Upload Video, or Stream URL")
+            st.markdown("Use your browser camera for live capture from Streamlit Cloud:")
+            camera_input = st.camera_input("Capture image from webcam")
+
+            if camera_input is not None:
+                try:
+                    file_bytes = np.asarray(bytearray(camera_input.getvalue()), dtype=np.uint8)
+                    frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+                    if frame is None:
+                        st.error("❌ Unable to decode the captured image.")
+                    else:
+                        frame, h_count, v_count, a_count = process_video_frame(frame, 0, yolo_model)
+                        st.image(frame, channels="RGB", caption=f"Humans: {h_count}  Vehicles: {v_count}  Animals: {a_count}")
+                        st.success("✅ Frame processed from browser camera.")
+                except Exception as e:
+                    st.error(f"❌ Camera processing error: {str(e)}")
         else:
             if st.button("🎥 Start Local Camera"):
                 try:
