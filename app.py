@@ -20,6 +20,7 @@ import streamlit as st
 from core.voice_auth import VoiceAuthenticator
 from core.command_classifier import CommandClassifier
 from core.drone_command_executor import DroneCommandExecutor
+from core.dashboard_data import DashboardData
 
 
 st.set_page_config(
@@ -233,7 +234,182 @@ def apply_app_style(theme_values: dict):
                 background: {theme_values['bg_alt']}99;
                 border-color: {theme_values['accent']};
             }}
-            
+
+            .dashboard-grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 18px;
+                margin-top: 18px;
+            }}
+
+            .tile-card {{
+                background: linear-gradient(135deg, {theme_values['bg_alt']} 0%, {theme_values['bg_alt']}dd 100%);
+                border: 1.5px solid {theme_values['card_border']};
+                border-radius: 24px;
+                padding: 24px;
+                min-height: 200px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+                transition: transform 0.3s ease, border-color 0.3s ease;
+            }}
+
+            .tile-card:hover {{
+                transform: translateY(-6px);
+                border-color: {theme_values['accent']};
+            }}
+
+            .tile-icon {{
+                font-size: 3.2rem;
+                margin-bottom: 16px;
+                opacity: 0.95;
+            }}
+
+            .status-pill {{
+                background: {theme_values['accent']}22;
+                color: {theme_values['accent']};
+                border: 1px solid {theme_values['accent']}44;
+                border-radius: 999px;
+                padding: 10px 18px;
+                font-size: 0.95rem;
+                font-weight: 700;
+                white-space: nowrap;
+            }}
+
+            .info-note {{
+                background: {theme_values['accent_light']};
+                border: 1px solid {theme_values['info_border']};
+                border-radius: 18px;
+                padding: 18px 22px;
+                margin-top: 14px;
+                color: {theme_values['text_secondary']};
+            }}
+
+            .hero-panel {{
+                background: radial-gradient(circle at top left, {theme_values['accent']}22, transparent 40%),
+                            linear-gradient(135deg, {theme_values['bg_alt']} 0%, {theme_values['bg']} 100%);
+                border: 1px solid {theme_values['card_border']};
+                border-radius: 32px;
+                padding: 34px;
+                margin-bottom: 24px;
+                box-shadow: 0 32px 80px rgba(6, 182, 212, 0.15);
+                backdrop-filter: blur(18px);
+            }}
+
+            .hero-heading {{
+                font-size: 2.35rem;
+                font-weight: 900;
+                margin-bottom: 12px;
+                line-height: 1.05;
+            }}
+
+            .hero-subtitle {{
+                color: {theme_values['text_secondary']};
+                font-size: 1.05rem;
+                max-width: 740px;
+                margin-bottom: 20px;
+            }}
+
+            .stat-chip {{
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 12px 18px;
+                border-radius: 999px;
+                background: {theme_values['accent']}11;
+                color: {theme_values['accent']};
+                font-weight: 700;
+                font-size: 0.95rem;
+            }}
+
+            .glow-card {{
+                background: linear-gradient(180deg, {theme_values['bg_alt']}dd 0%, {theme_values['bg_alt']}cc 100%);
+                border: 1.5px solid {theme_values['card_border']};
+                border-radius: 28px;
+                padding: 24px;
+                box-shadow: 0 28px 60px rgba(6, 182, 212, 0.12);
+                transition: transform 0.3s ease, border-color 0.3s ease;
+            }}
+
+            .glow-card:hover {{
+                transform: translateY(-4px);
+                border-color: {theme_values['accent']};
+            }}
+
+            .hero-top {{
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 18px;
+                flex-wrap: wrap;
+            }}
+
+            .hero-badge {{
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 12px 18px;
+                color: {theme_values['accent']};
+                background: {theme_values['accent']}11;
+                border: 1px solid {theme_values['accent']}44;
+                border-radius: 999px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+            }}
+
+            .radar-panel {{
+                width: 180px;
+                height: 180px;
+                border-radius: 999px;
+                position: relative;
+                background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 55%);
+                border: 1px solid {theme_values['accent']}22;
+                box-shadow: 0 0 40px rgba(6, 182, 212, 0.08);
+                margin: 0 auto;
+            }}
+
+            .radar-sweep {{
+                position: absolute;
+                inset: 0;
+                border-radius: 999px;
+                background: conic-gradient(from 0deg, rgba(6, 182, 212, 0.16) 0%, rgba(6, 182, 212, 0.02) 45%, transparent 60%);
+                animation: sweep 3.5s linear infinite;
+            }}
+
+            .radar-center {{
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                background: {theme_values['accent']};
+                transform: translate(-50%, -50%);
+                box-shadow: 0 0 24px rgba(6, 182, 212, 0.35);
+            }}
+
+            @keyframes sweep {{
+                from {{ transform: rotate(0deg); }}
+                to {{ transform: rotate(360deg); }}
+            }}
+
+            .sparkline {{
+                width: 100%;
+                height: 92px;
+                border-radius: 18px;
+                background: linear-gradient(90deg, {theme_values['accent']}33, transparent 80%);
+                margin-top: 18px;
+            }}
+
+            .section-hero {{
+                padding: 32px;
+                border-radius: 28px;
+                background: linear-gradient(135deg, {theme_values['accent']}22 0%, {theme_values['bg_alt']} 100%);
+                border: 1.5px solid {theme_values['card_border']};
+                margin-bottom: 24px;
+            }}
+
             h1, h2, h3, h4, h5, h6 {{
                 font-weight: 800;
                 letter-spacing: -0.5px;
@@ -267,6 +443,26 @@ def render_metric(title: str, value: str, subtitle: str, icon: str, theme_values
         unsafe_allow_html=True,
     )
 
+
+def render_info_tile(icon: str, title: str, value: str, detail: str, theme_values: dict):
+    st.markdown(
+        f"""
+        <div class="tile-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 18px;">
+                <div>
+                    <div class="tile-icon">{icon}</div>
+                    <div class="metric-label">{title}</div>
+                    <div class="metric-value">{value}</div>
+                </div>
+                <div class="status-pill">{detail}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+dashboard = DashboardData()
 
 theme_mode = st.sidebar.radio(
     "🎨 Theme",
@@ -331,48 +527,147 @@ st.markdown(
 # =========================
 
 if "Home" in menu:
+    dashboard.update_humans(2)
+    dashboard.update_vehicles(1)
+    dashboard.update_animals(0)
+    dashboard.update_status("MISSION READY")
+    dashboard.update_decision("PASSIVE SCAN")
+    dashboard.unlock_target()
+
     st.markdown(
-        """
-        <div class="section-card">
-            <div class="section-title">Mission Overview</div>
-            <p class="section-description">Live system health and threat detection metrics with a clean operational dashboard.</p>
+        f"""
+        <div class="hero-panel">
+            <div class="hero-top">
+                <div style="max-width: 700px;">
+                    <div class="hero-heading">AI Drone Command Bridge</div>
+                    <div class="hero-subtitle">A sleek operational console for intelligent aerial surveillance, autonomous mission control, and secure voice-driven command execution.</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-top: 18px;">
+                        <div class="stat-chip">🚀 Mission Ready</div>
+                        <div class="stat-chip">🔐 Secure Access</div>
+                        <div class="stat-chip">🌐 Live Vision</div>
+                    </div>
+                </div>
+                <div class="hero-badge">PRIMARY AERIAL UNIT</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; margin-top: 24px; align-items: stretch;">
+                <div style="display: grid; gap: 16px;">
+                    <div class="glow-card">
+                        <div class="metric-label">Coverage</div>
+                        <div class="metric-value">96%</div>
+                        <div class="info-note">Real-time area scan capacity with precision tracking.</div>
+                    </div>
+                    <div class="glow-card">
+                        <div class="metric-label">Response Time</div>
+                        <div class="metric-value">140 ms</div>
+                        <div class="info-note">Low-latency AI inference across live feeds.</div>
+                    </div>
+                </div>
+                <div style="display: grid; gap: 16px;">
+                    <div class="radar-panel">
+                        <div class="radar-sweep"></div>
+                        <div class="radar-center"></div>
+                    </div>
+                    <div class="glow-card" style="text-align: center;">
+                        <div class="metric-label">Threat Level</div>
+                        <div class="metric-value">LOW</div>
+                        <div class="info-note">All sensors nominal. No immediate threats detected in the current survey area.</div>
+                    </div>
+                </div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        render_metric("Humans", "0", "Active targets detected", "🧍", theme_values)
-    with col2:
-        render_metric("Vehicles", "0", "Motion objects detected", "🚗", theme_values)
-    with col3:
-        render_metric("Animals", "0", "Non-human entities", "🦮", theme_values)
+    st.markdown(
+        """
+        <div class="dashboard-grid">
+            <div class="tile-card">
+                <div class="tile-icon">🛰️</div>
+                <div class="metric-label">Airspace Status</div>
+                <div class="metric-value">Online</div>
+                <div class="info-note">Navigation channels stable and encrypted for secure flight control.</div>
+            </div>
+            <div class="tile-card">
+                <div class="tile-icon">⚡</div>
+                <div class="metric-label">Battery Health</div>
+                <div class="metric-value">98%</div>
+                <div class="info-note">Mission reserve available for up to 42 minutes of sustained operation.</div>
+            </div>
+            <div class="tile-card">
+                <div class="tile-icon">🎯</div>
+                <div class="metric-label">Target Lock</div>
+                <div class="metric-value">{ 'LOCKED' if dashboard.target_locked else 'STANDBY' }</div>
+                <div class="info-note">Target acquisition systems are ready for intelligent tracking.</div>
+            </div>
+            <div class="tile-card">
+                <div class="tile-icon">🧠</div>
+                <div class="metric-label">AI Mode</div>
+                <div class="metric-value">Predictive</div>
+                <div class="info-note">Adaptive planning with anomaly detection and decision support.</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown("---")
 
-    st.markdown(
-        """
-        <div class="section-card">
-            <div class="section-title">System Status</div>
-            <p class="section-description">Drone is ready and listening for commands. Visual intelligence and autonomous readiness are enabled.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    status_col1, status_col2 = st.columns([1, 2])
+    status_col1, status_col2 = st.columns([2, 1])
     with status_col1:
-        st.success("System Status: READY")
-        st.info("AI Decision: WAITING FOR INPUT")
+        st.markdown(
+            f"""
+            <div class="section-card">
+                <div class="section-title">Mission Telemetry</div>
+                <p class="section-description">Live operational data and recent performance analytics from the drone ecosystem.</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 18px;">
+                    <div class="metric-card" style="padding: 20px;">
+                        <div class="metric-label">Humans Detected</div>
+                        <div class="metric-value">{dashboard.human_count}</div>
+                        <div class="metric-subtitle">Current active human targets</div>
+                    </div>
+                    <div class="metric-card" style="padding: 20px;">
+                        <div class="metric-label">Vehicles Detected</div>
+                        <div class="metric-value">{dashboard.vehicle_count}</div>
+                        <div class="metric-subtitle">Potential moving objects in range</div>
+                    </div>
+                    <div class="metric-card" style="padding: 20px;">
+                        <div class="metric-label">Animals Detected</div>
+                        <div class="metric-value">{dashboard.animal_count}</div>
+                        <div class="metric-subtitle">Wildlife / non-human entities</div>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        with st.expander("Recent Activity and Alerts", expanded=True):
+            st.write("- 04:12 UTC — Autonomous sweep completed with zero anomalies.")
+            st.write("- 04:03 UTC — New voice access request validated.")
+            st.write("- 03:57 UTC — Live vision stream ready for deployment.")
+
     with status_col2:
         st.markdown(
-            """
-            - **Safety mode:** Active
-            - **Network:** Connected
-            - **Battery:** 98%
-            - **Mission state:** Standby
-            """
+            f"""
+            <div class="section-card">
+                <div class="section-title">Operational Snapshot</div>
+                <p class="section-description">Quick overview of system health, AI decision state, and mission readiness.</p>
+                <div class="status-container">
+                    <div class="status-item">
+                        <strong>Status</strong><br>{dashboard.drone_status}
+                    </div>
+                    <div class="status-item">
+                        <strong>Decision</strong><br>{dashboard.ai_decision}
+                    </div>
+                    <div class="status-item">
+                        <strong>Lock State</strong><br>{'Locked' if dashboard.target_locked else 'Unlocked'}
+                    </div>
+                </div>
+                <div class="info-note">Use the Live Vision tab to see detection results and the Voice Control tab to send commands safely.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
 
